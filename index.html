@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rekap Hasil Kerja - Asisten Input Follow Up Shipment</title>
+  <meta name="description" content="Aplikasi asisten rekapitulasi laporan hasil kerja follow up shipment toko. Otomatis mengelompokkan berdasarkan kendala dan menggabungkan nomor shipment dengan koma untuk kemudahan input 2x sehari.">
+  
+  <!-- Modern Typography: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- SheetJS Library (Offline local fallback with CDN backup) -->
+  <script src="vendor/xlsx.full.min.js"></script>
+  <!-- Preloaded Data from Hasil_Kerja.xlsx -->
+  <script src="default_data.js"></script>
+</head>
+<body>
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-inner container">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <path d="M16 13H8"></path>
+            <path d="M16 17H8"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title-row">
+            <h1 class="brand-title">Rekap Hasil Kerja</h1>
+            <span class="badge badge-primary">Auto-Grouping</span>
+          </div>
+          <p class="brand-subtitle">Asisten Cepat Input Laporan Shipment & Kendala Toko (2x Sehari)</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Theme Toggle Only (Mode Terang / Gelap) -->
+        <button type="button" class="btn-icon theme-toggle" id="btn-theme-toggle" title="Ganti Tema Gelap / Terang" aria-label="Toggle dark/light mode">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="app-main container">
+    
+    <!-- Top Bar: Simple Data Source & Actions -->
+    <section class="card upload-bar-simple" id="upload-section">
+      <input type="file" id="file-input" accept=".xlsx, .xls, .csv" class="visually-hidden">
+      
+      <div class="upload-source-info">
+        <span class="source-dot"></span>
+        <span class="source-label">Sumber Data:</span>
+        <strong class="source-filename" id="active-filename">Hasil_Kerja.xlsx</strong>
+        <span class="source-count" id="active-file-meta">(52 baris)</span>
+      </div>
+
+      <div class="upload-source-actions">
+        <!-- Action 1: Paste from Spreadsheet Popup -->
+        <button type="button" class="btn btn-primary btn-sm" id="btn-open-paste-modal" title="Buka popup untuk menempel langsung hasil copy dari Google Sheets atau Excel">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+          </svg>
+          <span>📋 Tempel / Paste Spreadsheet</span>
+        </button>
+
+        <!-- Action 2: Upload File Excel -->
+        <button type="button" class="btn btn-outline btn-sm" id="btn-browse-file" title="Pilih file Excel (.xlsx, .xls) dari komputer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span>📁 Upload Excel</span>
+        </button>
+
+        <!-- Action 3: Reload Sample Data -->
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-reload-sample" title="Muat kembali data contoh Hasil_Kerja.xlsx bawaan">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          <span>Data Contoh</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Compact Stats Strip -->
+    <section class="compact-stats-strip" id="stats-section">
+      <div class="stat-chip">
+        <span class="chip-label">Total Shipment:</span>
+        <strong class="chip-val chip-blue" id="stat-total-shipments">52</strong>
+      </div>
+      <div class="stat-chip">
+        <span class="chip-label">Batch Diinput:</span>
+        <strong class="chip-val chip-purple" id="stat-total-batches">18</strong>
+      </div>
+      <div class="stat-chip">
+        <span class="chip-label">Toko Unik:</span>
+        <strong class="chip-val chip-amber" id="stat-total-stores">15</strong>
+      </div>
+      <div class="stat-chip stat-chip-progress">
+        <span class="chip-label">Progres Input:</span>
+        <div class="mini-progress-bar">
+          <div class="mini-progress-fill" id="progress-bar-fill" style="width: 0%"></div>
+        </div>
+        <strong class="chip-val chip-green" id="stat-progress-percent">0%</strong>
+        <span class="chip-counter" id="stat-progress-counter">(0/18)</span>
+        <button type="button" class="btn-text-tiny" id="btn-reset-progress">Reset</button>
+      </div>
+    </section>
+
+    <!-- Toolbar: Search and Filters -->
+    <section class="card toolbar-card" id="toolbar-section">
+      
+      <!-- Filters & Search Controls -->
+      <div class="filter-controls-row">
+        <!-- Live Search -->
+        <div class="search-box">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="search-input" placeholder="Cari shipment (S-26...), toko, kendala, atau nama pejabat...">
+          <button type="button" class="btn-clear-search visually-hidden" id="btn-clear-search" aria-label="Hapus pencarian">&times;</button>
+        </div>
+
+        <!-- Status Filter Tabs -->
+        <div class="status-tabs" id="status-filter-tabs">
+          <button type="button" class="btn-tab active" data-status="all">Semua (<span id="count-all">18</span>)</button>
+          <button type="button" class="btn-tab" data-status="pending">Belum Diinput (<span id="count-pending">18</span>)</button>
+          <button type="button" class="btn-tab" data-status="completed">Selesai (<span id="count-completed">0</span>)</button>
+        </div>
+
+        <!-- Toko Filter Dropdown -->
+        <div class="select-wrapper">
+          <select id="filter-store" aria-label="Filter berdasarkan toko">
+            <option value="">Semua Toko</option>
+          </select>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-batch-actions">
+          <button type="button" class="btn btn-outline btn-sm" id="btn-mark-all" title="Tandai semua batch yang sedang tampil sebagai selesai">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Tandai Semua Selesai
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Batch Cards Container Header -->
+    <div class="batch-section-header">
+      <div class="batch-title-area">
+        <h2 class="section-title">Daftar Batch Siap Input ke Web</h2>
+        <span class="section-subtitle" id="batch-count-info">Menampilkan 18 batch laporan</span>
+      </div>
+      <div class="batch-header-tools">
+        <button type="button" class="btn btn-primary btn-sm" id="btn-start-wizard" title="Buka asisten input step-by-step dari batch pertama">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          Mulai Input Berurutan (Wizard)
+        </button>
+      </div>
+    </div>
+
+    <!-- Batch Cards Grid Container -->
+    <div class="batch-grid" id="batch-grid" role="region" aria-live="polite">
+      <!-- Dynamic Batch Cards will be rendered here by app.js -->
+    </div>
+
+    <!-- Empty State (hidden by default) -->
+    <div class="empty-state visually-hidden" id="empty-state">
+      <div class="empty-icon">🔍</div>
+      <h3>Tidak Ada Batch yang Sesuai</h3>
+      <p>Coba ubah kata kunci pencarian atau reset filter untuk melihat data kembali.</p>
+      <button type="button" class="btn btn-outline" id="btn-reset-filters">Reset Semua Filter</button>
+    </div>
+
+    <!-- SECTION: Rekap Semua Catatan Tambahan (Kendala) Dalam Satu Paragraf Dipisahkan Koma -->
+    <section class="card rekap-kendala-card" id="rekap-kendala-section" aria-label="Rekap Catatan Kendala">
+      <div class="rekap-kendala-header">
+        <div class="rekap-kendala-title-group">
+          <span class="step-badge step-badge-amber">6</span>
+          <div>
+            <h3 class="rekap-kendala-title">Rekap Semua Catatan Tambahan (Kendala)</h3>
+            <span class="rekap-kendala-subtitle" id="rekap-kendala-count">Digabungkan dalam satu paragraf dipisahkan koma</span>
+          </div>
+        </div>
+        <div class="rekap-kendala-actions">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-copy-all-kendala" title="Salin semua catatan kendala dipisahkan koma">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>📋 Salin Semua Kendala (Koma)</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="rekap-kendala-box">
+        <p class="rekap-kendala-text" id="rekap-kendala-text" title="Klik pada kotak teks ini untuk langsung menyalin semua catatan kendala">
+          <!-- Populated by app.js -->
+        </p>
+      </div>
+
+      <div class="rekap-kendala-footer">
+        <span class="rekap-hint">💡 <strong>Tips:</strong> Klik tombol biru atau klik langsung pada kotak teks di atas untuk menyalin seluruh catatan kendala (dipisahkan koma) ke clipboard.</span>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- FLOATING PROGRESS DOCK (SIMPEL, ELEGAN & BERSIH) -->
+  <!-- ======================================================== -->
+  <aside class="floating-progress-dock" id="floating-progress-dock" aria-label="Progress Bar Melayang">
+    <div class="dock-simple-layout">
+      
+      <!-- Left: Animated Percentage Pill -->
+      <div class="dock-percent-pill" id="dock-percent-pill">
+        <span class="dock-percent-val" id="dock-percent-val">0%</span>
+      </div>
+
+      <!-- Center: Wide Glowing Progress Bar with Fluid Shimmer -->
+      <div class="dock-bar-container">
+        <div class="dock-progress-track">
+          <div class="dock-progress-fill" id="dock-progress-fill" style="width: 0%">
+            <div class="dock-shimmer-beam"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Clean Minimalist Counter -->
+      <div class="dock-counter-badge" id="dock-counter-badge">
+        <span class="dock-counter-numbers" id="dock-counter-text">0 / 12 Selesai</span>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: FORM SIMULATOR (REPLICA OF USER'S SCREENSHOT FORM) -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop visually-hidden" id="modal-simulator-backdrop">
+    <div class="modal-dialog simulator-dialog" role="dialog" aria-modal="true" aria-labelledby="simulator-modal-title">
+      
+      <!-- Simulator Header -->
+      <div class="modal-header simulator-header">
+        <div class="simulator-title-box">
+          <div class="live-dot"></div>
+          <div>
+            <h3 class="modal-title" id="simulator-modal-title">Sudah Follow Up Shipment</h3>
+            <span class="simulator-badge" id="simulator-batch-indicator">Batch 1 dari 18</span>
+          </div>
+        </div>
+        
+        <div class="simulator-header-actions">
+          <div class="batch-nav-buttons">
+            <button type="button" class="btn-nav" id="sim-btn-prev" title="Batch Sebelumnya (Tombol Panah Kiri)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              <span>Prev</span>
+            </button>
+            <button type="button" class="btn-nav" id="sim-btn-next" title="Batch Berikutnya (Tombol Panah Kanan)">
+              <span>Next</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <button type="button" class="btn-close" id="sim-btn-close" aria-label="Tutup Simulator">&times;</button>
+        </div>
+      </div>
+
+      <!-- Simulator Body (Matches Screenshot Form) -->
+      <div class="modal-body simulator-body">
+        
+        <div class="simulator-toko-banner">
+          <div class="banner-store-info">
+            <span class="badge badge-toko" id="sim-toko-badge">KAPT. MUSLIM (W002)</span>
+            <span class="sim-shipment-count" id="sim-shipment-count">4 Shipment Digabung</span>
+          </div>
+          <button type="button" class="btn-copy-all-sim" id="sim-btn-copy-all" title="Salin seluruh data form sekaligus (Tab-Separated) untuk langsung di-paste">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Salin Semua Field
+          </button>
+        </div>
+
+        <form id="portal-simulator-form" onsubmit="return false;">
+          
+          <!-- Field 1: Masukkan Nomor shipment -->
+          <div class="sim-form-group">
+            <div class="sim-label-row">
+              <label for="sim-input-shipment">1. Masukkan Nomor shipment</label>
+              <button type="button" class="btn-field-copy" data-copy-target="sim-input-shipment" title="Salin nomor shipment berformat koma">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Salin Shipment
+              </button>
+            </div>
+            <textarea id="sim-input-shipment" class="sim-input sim-textarea" rows="2" placeholder="Contoh: S-261021-AGJFYMH,S-261021-AGRGPRM,S-261021-AGJSVJH" readonly></textarea>
+            <small class="sim-field-hint">Otomatis dipisahkan koma tanpa spasi sesuai format portal.</small>
+          </div>
+
+          <!-- Field 2: Sudah follow up ke toko? -->
+          <div class="sim-form-group">
+            <label class="sim-label-plain">Sudah follow up ke toko?</label>
+            <div class="sim-radio-group">
+              <label class="sim-radio-item">
+                <input type="radio" name="sim-followup" id="sim-fu-sudah" value="Sudah" checked>
+                <span class="sim-radio-custom"></span>
+                <span>Sudah</span>
+              </label>
+              <label class="sim-radio-item">
+                <input type="radio" name="sim-followup" id="sim-fu-belum" value="Belum">
+                <span class="sim-radio-custom"></span>
+                <span>Belum</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Field 3: Jumlah Personil Toko -->
+          <div class="sim-form-group">
+            <div class="sim-label-row">
+              <label for="sim-input-personil">2. Jumlah Personil Toko</label>
+              <button type="button" class="btn-field-copy" data-copy-target="sim-input-personil" title="Salin Jumlah Personil">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Salin
+              </button>
+            </div>
+            <input type="text" id="sim-input-personil" class="sim-input" placeholder="Nomor saja (kosongkan jika tidak ada)..." value="" inputmode="numeric" pattern="[0-9]*">
+          </div>
+
+          <!-- Field 4: Masukkan Nama Pejabat Toko -->
+          <div class="sim-form-group">
+            <div class="sim-label-row">
+              <label for="sim-input-pejabat">3. Masukkan Nama Pejabat Toko</label>
+              <button type="button" class="btn-field-copy" data-copy-target="sim-input-pejabat" title="Salin Nama Pejabat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Salin
+              </button>
+            </div>
+            <input type="text" id="sim-input-pejabat" class="sim-input" placeholder="Contoh: Ari / indah / Novita sari">
+          </div>
+
+          <!-- Field 5: Status Equipment Motor? -->
+          <div class="sim-form-group">
+            <div class="sim-label-row">
+              <label class="sim-label-plain">4. Status Equipment Motor?</label>
+              <button type="button" class="btn-field-copy" id="btn-copy-motor-val" title="Salin Status Motor">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Salin Status
+              </button>
+            </div>
+            <div class="sim-radio-group">
+              <label class="sim-radio-item">
+                <input type="radio" name="sim-motor" id="sim-motor-bagus" value="Bagus" checked>
+                <span class="sim-radio-custom"></span>
+                <span>Bagus</span>
+              </label>
+              <label class="sim-radio-item">
+                <input type="radio" name="sim-motor" id="sim-motor-rusak" value="Rusak">
+                <span class="sim-radio-custom"></span>
+                <span>Rusak</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Field 6: Masukkan Hasil Follow Up -->
+          <div class="sim-form-group">
+            <div class="sim-label-row">
+              <label for="sim-select-hasil-fu">5. Masukkan Hasil Follow Up</label>
+              <button type="button" class="btn-field-copy" data-copy-target="sim-select-hasil-fu" title="Salin teks Hasil Follow Up">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Salin
+              </button>
+            </div>
+            <select id="sim-select-hasil-fu" class="sim-select">
+              <option value="Antrian Pengiriman < 5 Order">Antrian Pengiriman &lt; 5 Order</option>
+              <option value="Antrian Pengiriman > 5 Order">Antrian Pengiriman &gt; 5 Order</option>
+              <option value="Kurang Personil (Personil ada yg tidak masuk)">Kurang Personil (Personil ada yg tidak masuk)</option>
+              <option value="Kendala Pengiriman Macet">Kendala Pengiriman Macet</option>
+              <option value="Jarak Pengiriman Jauh">Jarak Pengiriman Jauh</option>
+              <option value="Motor Bermasalah">Motor Bermasalah</option>
+              <option value="Pembatalan Order">Pembatalan Order</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+
+          <!-- Field 7: Masukkan Grouping Kendala -->
+          <div class="sim-form-group">
+            <div class="sim-label-row">
+              <label for="sim-select-grouping">6. Masukkan Grouping Kendala</label>
+              <button type="button" class="btn-field-copy" data-copy-target="sim-select-grouping" title="Salin Grouping Kendala">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Salin
+              </button>
+            </div>
+            <select id="sim-select-grouping" class="sim-select">
+              <option value="1. Handle Toko" selected>1. Handle Toko</option>
+              <option value="2. Handle Driver / Kurir">2. Handle Driver / Kurir</option>
+              <option value="3. Handle Konsumen">3. Handle Konsumen</option>
+              <option value="4. Sistem / DC">4. Sistem / DC</option>
+            </select>
+          </div>
+
+          <!-- Field 8: Masukkan Nama Agent Yang Melakukan Follow Up -->
+          <div class="sim-form-group">
+            <div class="sim-label-row">
+              <label for="sim-select-agent">7. Masukkan Nama Agent Yang Melakukan Follow Up</label>
+              <button type="button" class="btn-field-copy" data-copy-target="sim-select-agent" title="Salin Nama Agent">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Salin
+              </button>
+            </div>
+            <input type="text" id="sim-select-agent" class="sim-input" value="SYAIFUL">
+          </div>
+
+          <!-- Field 9: Catatan Tambahan -->
+          <div class="sim-form-group">
+            <div class="sim-label-row">
+              <label for="sim-input-catatan">8. Catatan Tambahan</label>
+              <button type="button" class="btn-field-copy" data-copy-target="sim-input-catatan" title="Salin Catatan Tambahan">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Salin Catatan
+              </button>
+            </div>
+            <textarea id="sim-input-catatan" class="sim-input sim-textarea" rows="2" placeholder="Catatan kendala dari lapangan..."></textarea>
+          </div>
+
+          <!-- Submit Button Replica -->
+          <div class="sim-submit-area">
+            <button type="button" class="btn-portal-update" id="sim-btn-submit">
+              Update Status
+            </button>
+            <button type="button" class="btn btn-primary" id="sim-btn-complete-next">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Tandai Selesai & Lanjut Batch Berikutnya
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: WHATSAPP / TELEGRAM RECAP TEXT GENERATOR -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop visually-hidden" id="modal-recap-backdrop">
+    <div class="modal-dialog recap-dialog" role="dialog" aria-modal="true" aria-labelledby="recap-modal-title">
+      <div class="modal-header">
+        <h3 class="modal-title" id="recap-modal-title">Format Rangkuman WhatsApp / Telegram</h3>
+        <button type="button" class="btn-close" id="recap-btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="recap-info">Salin format laporan siap kirim ini untuk update ke atasan atau grup koordinasi:</p>
+        <textarea id="recap-text-output" class="recap-textarea" rows="12" readonly></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" id="recap-btn-dismiss">Tutup</button>
+        <button type="button" class="btn btn-primary" id="recap-btn-copy">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Salin Teks WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: PASTE DATA SPREADSHEET (GOOGLE SHEETS / EXCEL) -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop visually-hidden" id="modal-paste-backdrop">
+    <div class="modal-dialog paste-dialog" role="dialog" aria-modal="true" aria-labelledby="paste-modal-title">
+      
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <div class="modal-icon-badge">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+            </svg>
+          </div>
+          <div>
+            <h3 class="modal-title" id="paste-modal-title">Tempel / Paste dari Spreadsheet</h3>
+            <span class="modal-subtitle">Salin baris data dari Google Sheets atau Excel, lalu tempelkan (Ctrl+V / Cmd+V) di bawah</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-paste" aria-label="Tutup modal">&times;</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <div class="paste-instruction-banner">
+          <span class="paste-step">1</span> Salin baris dari Google Sheets / Excel (bisa baris data saja atau beserta header kolomnya).<br>
+          <span class="paste-step">2</span> Tempelkan pada area teks di bawah, lalu klik tombol <strong>Terapkan Data</strong>.
+        </div>
+
+        <div class="paste-textarea-wrapper">
+          <textarea 
+            id="paste-input-textarea" 
+            class="paste-textarea" 
+            placeholder="Klik di sini lalu tekan Ctrl+V (atau Cmd+V di Mac) untuk menempelkan hasil copy tabel spreadsheet..."
+            rows="9"
+            spellcheck="false"
+          ></textarea>
+        </div>
+
+        <!-- Detection bar info -->
+        <div class="paste-detection-bar" id="paste-detection-bar">
+          <span id="paste-detected-info">Belum ada data yang ditempel</span>
+          <span class="paste-auto-tag">✨ Deteksi Kolom Otomatis</span>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline btn-sm" id="btn-clear-paste">Bersihkan Teks</button>
+        <div class="modal-footer-right">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-paste">Batal</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-process-paste">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Terapkan Data Spreadsheet</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- App Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
