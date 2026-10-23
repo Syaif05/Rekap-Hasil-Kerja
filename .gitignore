@@ -2,3 +2,5 @@ node_modules/
 .DS_Store
 *.log
 .vercel
+local_server.js
+package-lock.json

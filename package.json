@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "description": "Aplikasi Web Rekapitulasi & Auto-Grouping Hasil Kerja Laporan Shipment & Kendala Toko",
   "scripts": {
-    "build": "echo 'Static build ready'",
-    "dev": "node local_server.js",
-    "start": "node local_server.js"
+    "dev": "node local_server.js"
   },
   "keywords": [
     "rekap",
