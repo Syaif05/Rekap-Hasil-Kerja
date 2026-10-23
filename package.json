@@ -2,22 +2,17 @@
   "name": "rekap-hasil-kerja",
   "version": "1.0.0",
   "description": "Aplikasi Web Rekapitulasi & Auto-Grouping Hasil Kerja Laporan Shipment & Kendala Toko",
-  "main": "server.js",
   "scripts": {
     "build": "echo 'Static build ready'",
-    "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node local_server.js",
+    "start": "node local_server.js"
   },
   "keywords": [
     "rekap",
     "hasil-kerja",
     "shipment",
-    "grouping",
-    "excel"
+    "grouping"
   ],
   "author": "Syaifulloh",
-  "license": "MIT",
-  "dependencies": {
-    "xlsx": "^0.18.5"
-  }
+  "license": "MIT"
 }
